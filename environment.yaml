@@ -1,0 +1,21 @@
+name: cleansight
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - torch==2.8.0
+    - torchvision==0.23.0
+    - transformers==4.57.6
+    - numpy
+    - pillow
+    - pyyaml
+    - tqdm
+    - accelerate
+    - sentencepiece
+    - protobuf
+    - scikit-learn
+    - einops
+    - timm

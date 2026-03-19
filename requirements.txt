@@ -1,0 +1,13 @@
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.37.0
+numpy
+pillow
+pyyaml
+tqdm
+accelerate
+sentencepiece
+protobuf
+scikit-learn
+einops
+timm

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+*.so
+.tox/
+.mypy_cache/
+.pytest_cache/
+*.log
+configs/calibrated*.yaml
+eval_results.json

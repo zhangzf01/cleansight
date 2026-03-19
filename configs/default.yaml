@@ -1,0 +1,21 @@
+detection_layers:
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+  - 20
+  - 21
+  - 22
+  - 23
+  - 24
+image_token_start_index: 35
+image_token_length: 576
+gamma_percentile: 99.0
+prune_threshold: 0.02
+neg_inf: -1.0e+38
