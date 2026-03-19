@@ -4,7 +4,7 @@
 
 > Zhifang Zhang, Bojun Yang, Shuo He, Weitong Chen, Wei Emma Zhang, Olaf Maennel, Lei Feng, Miao Xu
 
-[[Paper]](https://arxiv.org/abs/2603.12989)
+Thanks for the interest of our [[paper]](https://arxiv.org/abs/2603.12989) accepted at CVPR 2026 
 
 CleanSight is a **training-free, plug-and-play** defense that operates purely at test time to protect Large Vision-Language Models (LVLMs) against backdoor attacks. It detects poisoned inputs by measuring abnormal vision-to-text attention redistribution and neutralizes backdoor activation by pruning suspicious visual tokens.
 
