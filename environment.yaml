@@ -6,9 +6,9 @@ dependencies:
   - python=3.10
   - pip
   - pip:
-    - torch==2.8.0
-    - torchvision==0.23.0
-    - transformers==4.57.6
+    - torch>=2.1.0
+    - torchvision>=0.16.0
+    - transformers>=4.37.0
     - numpy
     - pillow
     - pyyaml
