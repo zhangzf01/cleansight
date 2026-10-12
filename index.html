@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="CleanSight is a training-free, plug-and-play test-time defense for backdoored large vision-language models that detects attention stealing and prunes trigger-bearing visual tokens.">
+  <meta name="robots" content="index,follow">
+  <title>CleanSight: Test-Time Attention Purification for Backdoored Large Vision Language Models</title>
+  <meta property="og:title" content="CleanSight: Test-Time Attention Purification for Backdoored Large Vision Language Models">
+  <meta property="og:description" content="CleanSight is a training-free, plug-and-play test-time defense for backdoored LVLMs that detects attention stealing and prunes trigger-bearing visual tokens.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="media/attention_stealing.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to content</a>
+  <header class="site-header" role="banner">
+    <div class="container">
+      <a class="brand brand-text" href="#hero">Clean<span class="brand-accent">Sight</span></a>
+      <button class="nav-toggle" aria-controls="site-nav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+      </button>
+      <nav id="site-nav" class="site-nav" aria-label="Primary">
+        <a href="#abstract">Abstract</a>
+        <a href="#insight">Key Insight</a>
+        <a href="#overview">Method</a>
+        <a href="#results">Results</a>
+        <a href="#analysis">Analysis</a>
+        <a href="#quickstart">Quick Start</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <section id="hero" class="hero hero-centered">
+      <div class="container">
+        <div class="hero-content">
+          <p class="title-brand">Clean<span class="brand-accent">Sight</span></p>
+          <h1>Test-Time Attention Purification for Backdoored Large Vision Language Models</h1>
+          <p class="subtitle">A training-free, plug-and-play defense that neutralizes backdoors in LVLMs by purifying attention, not pixels.</p>
+          <p style="margin:-6px 0 14px;">
+            <strong style="display:inline-block;padding:6px 12px;border-radius:999px;border:0;background:transparent;color:#92400e;letter-spacing:.2px;">
+              CVPR 2026
+            </strong>
+          </p>
+          <p class="authors">Zhifang Zhang<sup>1</sup>, Bojun Yang<sup>2</sup>, Shuo He<sup>3</sup>, Weitong Chen<sup>4</sup>, Wei Emma Zhang<sup>4</sup><br>Olaf Maennel<sup>4</sup>, Lei Feng<sup>2,†</sup>, Miao Xu<sup>1,†</sup></p>
+          <p class="affiliations"><sup>1</sup> University of Queensland, <sup>2</sup> Southeast University, <sup>3</sup> Nanyang Technological University, <sup>4</sup> Adelaide University<br><sup>†</sup> Co-corresponding authors</p>
+          <div class="cta">
+            <a class="button primary" href="https://arxiv.org/abs/2603.12989"><span class="emoji">📄</span>Paper</a>
+            <a class="button primary" href="https://github.com/zhangzf01/cleansight"><span class="emoji">💻</span>Code</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tldr" class="section alt tldr">
+      <div class="container">
+        <div class="tldr-line">
+          <span class="demo-label">TLDR:</span>
+          <p class="tldr-text">Backdoor triggers in LVLMs work by making trigger-bearing visual tokens <em>steal attention</em> from the text prompt; <strong class="method-name">CleanSight</strong> detects this abnormal attention at test time and prunes the offending tokens, driving attack success rates to near zero without any retraining.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="abstract" class="section">
+      <div class="container">
+        <h2>Abstract</h2>
+        <p>Despite the strong multimodal performance, large vision&ndash;language models (LVLMs) are vulnerable during fine-tuning to backdoor attacks, where adversaries insert trigger-embedded samples into the training data to implant behaviors that can be maliciously activated at test time. Existing defenses typically rely on retraining backdoored parameters (e.g., adapters or LoRA modules) with clean data, which is computationally expensive and often degrades model performance.</p>
+        <p>In this work, we provide a new mechanistic understanding of backdoor behaviors in LVLMs: the trigger does not influence prediction through low-level visual patterns, but through abnormal cross-modal attention redistribution, where trigger-bearing visual tokens steal attention away from the textual context &mdash; a phenomenon we term <em>attention stealing</em>.</p>
+        <p>Motivated by this, we propose <strong class="method-name">CleanSight</strong>, a training-free, plug-and-play defense that operates purely at test time. <strong class="method-name">CleanSight</strong> (i) detects poisoned inputs based on the relative visual&ndash;text attention ratio in selected cross-modal fusion layers, and (ii) purifies the input by selectively pruning the suspicious high-attention visual tokens to neutralize the backdoor activation. Extensive experiments show that <strong class="method-name">CleanSight</strong> significantly outperforms existing pixel-based purification defenses across diverse datasets and backdoor attack types, while preserving the model&rsquo;s utility on both clean and poisoned samples.</p>
+      </div>
+    </section>
+
+    <section id="insight" class="section alt">
+      <div class="container">
+        <h2>Key Insight: Attention Stealing</h2>
+        <p>Existing test-time defenses purify poisoned inputs in <em>pixel space</em>, an approach designed for models trained from scratch on poisoned data (e.g., CLIP). We find that backdoors implanted into LVLMs during fine-tuning behave very differently: they are largely insensitive to pixel perturbations but highly fragile to <em>attention</em> perturbations.</p>
+        <div class="media-single">
+          <div class="media-frame">
+            <img src="media/compare_pert.png" alt="Pixel-based vs. attention-based perturbation defenses" class="responsive-image" loading="lazy">
+            <p class="caption caption-pipeline">
+              <strong>Pixel perturbation vs. attention perturbation.</strong>
+              Attack success rate (ASR) of backdoored LLaVA (adapter and LoRA tuned) and CLIP under pixel perturbation (a transformation-based defense) and attention perturbation (interpolating the visual attention toward a uniform distribution) of increasing intensity.
+              Pixel perturbation barely reduces the ASR of backdoored LVLMs, whereas attention perturbation suppresses it rapidly. When visual attention is fully averaged (&eta; = 1), the backdoor disappears even though the trigger pixels remain intact.
+            </p>
+          </div>
+        </div>
+
+        <p style="margin-top:22px;">Looking closer at the attention patterns, the core abnormality is <strong>attention stealing</strong>. In clean inputs, image tokens typically receive much less attention than text tokens in the middle layers. For poisoned inputs this reverses: visual attention surges while attention on the text prompt drops, as if the image tokens are stealing attention from the instruction. The spikes are localized precisely on the trigger regions. Suppressing these spiking tokens at test time removes the backdoor behavior while preserving clean semantics, which indicates that attention stealing <em>causes</em> the backdoor activation rather than merely correlating with it.</p>
+        <div class="media-single">
+          <div class="media-frame">
+            <img src="media/attention_stealing.png" alt="Visualization of attention stealing in backdoored LVLMs" class="responsive-image" loading="lazy">
+            <p class="caption caption-pipeline">
+              <strong>Attention stealing in backdoored LVLMs</strong>, shown for a patch trigger (x.1) and a global trigger (x.2).
+              (a) Cross-modal attention allocation: on poisoned inputs, attention shifts from the text prompt to image tokens.
+              (b) Token-wise attention: the &ldquo;thief&rdquo; tokens with attention spikes coincide with the trigger regions.
+              (c) Poisoned images with the patches that receive attention spikes highlighted.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="overview" class="section">
+      <div class="container">
+        <h2>Method: <span class="method-name">CleanSight</span></h2>
+        <p><strong class="method-name">CleanSight</strong> detects and purifies backdoored inputs at test time using attention dynamics inside the cross-modal fusion layers. It never touches the (possibly backdoored) model parameters; it only intervenes on the data flow of attention.</p>
+        <p class="caption caption-pipeline">
+          Attention purification proceeds in four phases inside the LLM of a backdoored LVLM:
+          <br>
+          &nbsp;&nbsp; I) <em>Pre-detection layers</em>: the early layers run unchanged.
+          <br>
+          &nbsp;&nbsp; II) <em>Detection layers</em>: in a few consecutive middle (cross-modal fusion) layers, the head-specific visual-to-text attention ratio of the current query token, <em>S</em><sup>&#8467;,h</sup> = &sum;<sub>vis</sub>&alpha; / &sum;<sub>prompt</sub>&alpha;, is collected across heads and layers into a feature vector. It is scored against clean reference statistics (mean and std estimated on a small clean validation set) with a whitened &#8467;<sub>2</sub> distance, and the input is flagged as poisoned if the score exceeds a high quantile &gamma; of the clean scores.
+          <br>
+          &nbsp;&nbsp; III) <em>Prune layer</em>: for a flagged input, every visual token whose attention exceeds a threshold &tau; in <em>any</em> head at the last detection layer is added to a global mask &Omega;.
+          <br>
+          &nbsp;&nbsp; IV) <em>Post-prune layers</em>: in all later layers and decoding steps, a large negative bias is added to the attention logits of the masked tokens, so they receive almost zero attention and can no longer steal it.
+        </p>
+
+        <div class="media-single" style="margin-top:22px;">
+          <div class="media-frame">
+            <div class="figure-narrow">
+              <img src="media/s_layer.png" alt="Detection AUROC across layers" class="responsive-image" loading="lazy">
+            </div>
+            <p class="caption caption-pipeline">
+              <strong>Where to detect.</strong> AUROC of the layer-wise attention-ratio score for separating clean and poisoned inputs (LLaVA-1.5-7B). The head-specific ratio stays near-perfect across most layers, especially in the middle cross-modal fusion region, while the head-averaged ratio is much less stable. <span class="method-name">CleanSight</span> therefore keeps head-level granularity and builds its reference statistics from these middle layers.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="results" class="section alt">
+      <div class="container">
+        <h2>Results</h2>
+        <p>We backdoor LLaVA-1.5-7B by fine-tuning its vision&ndash;language adapter on VQAv2 and OKVQA (visual question answering) and on MSCOCO and Flickr8k (image captioning). We evaluate six attacks: BadNet, Blended, ISSBA, WaNet, and the LVLM-specific TrojVLM and VLOOD. Baselines are Gaussian Blur and four input-purification defenses (ST defense, BDMAE, SampDetox, ZIP). We report attack success rate (<strong>ASR</strong>, &darr;) and clean utility (<strong>CU</strong>, &uarr;; V-score for VQA, CIDEr for captioning).</p>
+
+        <h3 class="table-title">Visual question answering</h3>
+        <div class="table-wrap">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th rowspan="2">Dataset</th><th rowspan="2" class="col-method">Method</th>
+                <th colspan="2">BadNet</th><th colspan="2">Blended</th><th colspan="2">ISSBA</th>
+                <th colspan="2">WaNet</th><th colspan="2">TrojVLM</th><th colspan="2">VLOOD</th>
+              </tr>
+              <tr>
+                <th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th>
+                <th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group-start"><th rowspan="7" class="dataset">VQAv2</th><td class="col-method">No defense</td><td>100.00</td><td>62.89</td><td>100.00</td><td>67.06</td><td>98.83</td><td>65.49</td><td>100.00</td><td>68.10</td><td>100.00</td><td>68.36</td><td>100.00</td><td>53.65</td></tr>
+              <tr><td class="col-method">Blur</td><td>100.00</td><td>58.98</td><td>100.00</td><td>41.02</td><td>98.44</td><td>61.46</td><td>99.22</td><td>27.47</td><td>100.00</td><td>67.71</td><td>100.00</td><td>67.32</td></tr>
+              <tr><td class="col-method">ST defense</td><td>82.81</td><td>56.51</td><td>97.66</td><td>55.08</td><td>100.00</td><td>9.38</td><td>92.58</td><td>12.24</td><td>89.84</td><td>62.76</td><td>93.36</td><td>63.02</td></tr>
+              <tr><td class="col-method">BDMAE</td><td>88.28</td><td>29.30</td><td>100.00</td><td>26.82</td><td>100.00</td><td>36.46</td><td>99.22</td><td>5.73</td><td>80.86</td><td>62.50</td><td>86.33</td><td>61.20</td></tr>
+              <tr><td class="col-method">SampDetox</td><td>94.53</td><td>61.59</td><td>98.83</td><td>64.97</td><td>98.05</td><td>60.81</td><td>95.31</td><td>63.02</td><td>98.44</td><td>68.36</td><td>99.61</td><td>67.58</td></tr>
+              <tr><td class="col-method">ZIP</td><td>80.47</td><td>59.38</td><td>84.77</td><td>64.06</td><td>74.22</td><td>65.49</td><td>7.03</td><td>66.15</td><td>85.94</td><td>66.15</td><td>95.31</td><td>63.15</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>0</b></td><td>62.63</td><td><b>0</b></td><td>68.36</td><td><b>0</b></td><td>63.02</td><td><b>0</b></td><td>68.10</td><td><b>3.14</b></td><td>65.46</td><td><b>0</b></td><td>64.97</td></tr>
+              <tr class="group-start"><th rowspan="7" class="dataset">OKVQA</th><td class="col-method">No defense</td><td>100.00</td><td>61.07</td><td>100.00</td><td>57.55</td><td>99.22</td><td>57.55</td><td>99.61</td><td>61.98</td><td>100.00</td><td>52.67</td><td>100.00</td><td>66.54</td></tr>
+              <tr><td class="col-method">Blur</td><td>100.00</td><td>52.73</td><td>100.00</td><td>58.20</td><td>98.83</td><td>57.42</td><td>99.22</td><td>50.13</td><td>100.00</td><td>48.18</td><td>100.00</td><td>57.29</td></tr>
+              <tr><td class="col-method">ST defense</td><td>85.55</td><td>56.38</td><td>98.05</td><td>52.60</td><td>67.19</td><td>32.55</td><td>53.91</td><td>54.95</td><td>77.73</td><td>48.96</td><td>82.42</td><td>54.95</td></tr>
+              <tr><td class="col-method">BDMAE</td><td>79.30</td><td>50.26</td><td>98.83</td><td>52.47</td><td>98.83</td><td>52.34</td><td>99.61</td><td>35.81</td><td>67.97</td><td>45.70</td><td>65.23</td><td>55.08</td></tr>
+              <tr><td class="col-method">SampDetox</td><td>91.80</td><td>55.73</td><td>100.00</td><td>54.56</td><td>93.75</td><td>56.12</td><td>95.70</td><td>49.87</td><td>89.84</td><td>16.15</td><td>91.02</td><td>22.27</td></tr>
+              <tr><td class="col-method">ZIP</td><td>85.16</td><td>54.17</td><td>99.22</td><td>52.60</td><td>55.08</td><td>54.17</td><td>3.91</td><td>51.95</td><td>80.47</td><td>16.02</td><td>81.25</td><td>20.70</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>0</b></td><td>56.90</td><td><b>2.73</b></td><td>57.81</td><td><b>0</b></td><td>57.94</td><td><b>0</b></td><td>55.86</td><td><b>4.74</b></td><td>48.66</td><td><b>0</b></td><td>53.26</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="table-title">Image captioning</h3>
+        <div class="table-wrap">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th rowspan="2">Dataset</th><th rowspan="2" class="col-method">Method</th>
+                <th colspan="2">BadNet</th><th colspan="2">Blended</th><th colspan="2">ISSBA</th>
+                <th colspan="2">WaNet</th><th colspan="2">TrojVLM</th><th colspan="2">VLOOD</th>
+              </tr>
+              <tr>
+                <th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th>
+                <th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th><th>ASR&darr;</th><th>CU&uarr;</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group-start"><th rowspan="7" class="dataset">COCO</th><td class="col-method">No defense</td><td>99.22</td><td>135.70</td><td>99.61</td><td>125.39</td><td>98.05</td><td>125.07</td><td>98.83</td><td>126.88</td><td>100.00</td><td>125.98</td><td>100.00</td><td>104.13</td></tr>
+              <tr><td class="col-method">Blur</td><td>84.77</td><td>140.88</td><td>97.27</td><td>114.39</td><td>99.61</td><td>122.30</td><td>99.22</td><td>121.68</td><td>98.83</td><td>129.85</td><td>99.61</td><td>99.42</td></tr>
+              <tr><td class="col-method">ST defense</td><td>31.25</td><td>130.57</td><td>87.50</td><td>129.53</td><td>43.75</td><td>118.77</td><td>59.38</td><td>115.92</td><td>94.14</td><td>101.74</td><td>96.88</td><td>72.84</td></tr>
+              <tr><td class="col-method">BDMAE</td><td>26.95</td><td>128.75</td><td>96.09</td><td>111.57</td><td>96.48</td><td>119.36</td><td>98.83</td><td>57.97</td><td>77.73</td><td>112.79</td><td>85.16</td><td>85.62</td></tr>
+              <tr><td class="col-method">SampDetox</td><td>40.62</td><td>138.48</td><td>90.23</td><td>120.34</td><td>92.58</td><td>118.13</td><td>87.50</td><td>119.00</td><td>96.09</td><td>133.19</td><td>94.53</td><td>98.29</td></tr>
+              <tr><td class="col-method">ZIP</td><td>34.25</td><td>125.79</td><td>65.23</td><td>117.84</td><td>54.69</td><td>116.38</td><td>5.86</td><td>119.63</td><td>89.84</td><td>123.45</td><td>89.45</td><td>101.42</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>0</b></td><td>133.28</td><td><b>0</b></td><td>123.99</td><td><b>0</b></td><td>124.61</td><td><b>0.39</b></td><td>126.88</td><td><b>0</b></td><td>123.66</td><td><b>0.39</b></td><td>102.60</td></tr>
+              <tr class="group-start"><th rowspan="7" class="dataset">Flickr8k</th><td class="col-method">No defense</td><td>99.61</td><td>133.23</td><td>98.05</td><td>133.63</td><td>92.13</td><td>131.52</td><td>98.44</td><td>126.58</td><td>94.92</td><td>104.04</td><td>98.83</td><td>104.16</td></tr>
+              <tr><td class="col-method">Blur</td><td>96.88</td><td>126.59</td><td>93.36</td><td>130.37</td><td>85.55</td><td>133.68</td><td>98.83</td><td>129.38</td><td>91.80</td><td>98.03</td><td>89.84</td><td>102.06</td></tr>
+              <tr><td class="col-method">ST defense</td><td>70.31</td><td>109.39</td><td>85.16</td><td>115.76</td><td>8.20</td><td>72.38</td><td>62.50</td><td>120.30</td><td>34.72</td><td>97.61</td><td>13.28</td><td>86.44</td></tr>
+              <tr><td class="col-method">BDMAE</td><td>62.50</td><td>99.76</td><td>96.09</td><td>118.10</td><td>87.50</td><td>110.25</td><td>99.61</td><td>62.14</td><td>44.53</td><td>83.50</td><td>51.95</td><td>85.51</td></tr>
+              <tr><td class="col-method">SampDetox</td><td>62.11</td><td>132.11</td><td>94.92</td><td>129.68</td><td>82.42</td><td>129.69</td><td>78.52</td><td>127.55</td><td>77.73</td><td>99.21</td><td>82.81</td><td>87.50</td></tr>
+              <tr><td class="col-method">ZIP</td><td>58.11</td><td>120.75</td><td>91.41</td><td>121.60</td><td>52.34</td><td>119.18</td><td>1.95</td><td>117.70</td><td>68.36</td><td>94.58</td><td>76.17</td><td>94.44</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>1.56</b></td><td>131.15</td><td><b>2.34</b></td><td>131.13</td><td><b>0</b></td><td>126.93</td><td><b>0</b></td><td>120.90</td><td><b>4.65</b></td><td>95.48</td><td><b>2.18</b></td><td>85.91</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="caption caption-pipeline">
+          <strong><span class="method-name">CleanSight</span> drives ASR to almost zero across all datasets and attacks</strong>, including global and invisible triggers that are tightly entangled with the image, while pixel-level purification only partially reduces ASR. Its clean utility stays close to the undefended model, which shows that the detector rarely flags clean inputs (a false alarm would prune benign tokens and visibly hurt CU). TrojVLM is the hardest case. Its semantic-preserving objective appears to cause only a mild shift in cross-modal attention, which makes the trigger tokens harder to isolate.
+        </p>
+
+        <h3 class="table-title">Generality across models and tuning strategies <span class="table-sub">(VQAv2; ASR&darr; with CU&uarr; in parentheses)</span></h3>
+        <div class="table-wrap">
+          <table class="results-table compact">
+            <thead>
+              <tr><th>Model</th><th class="col-method">Method</th><th>BadNet</th><th>Blended</th><th>ISSBA</th></tr>
+            </thead>
+            <tbody>
+              <tr class="group-start"><th rowspan="3" class="dataset">LLaVA-1.5 7B<br><span class="muted">(LoRA)</span></th><td class="col-method">No defense</td><td>100.00 (63.80)</td><td>100.00 (63.54)</td><td>98.44 (64.35)</td></tr>
+              <tr><td class="col-method">ZIP</td><td>81.64 (59.90)</td><td>74.61 (60.81)</td><td>67.97 (62.66)</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>5.08</b> (59.29)</td><td><b>0</b> (59.65)</td><td><b>3.02</b> (62.40)</td></tr>
+              <tr class="group-start"><th rowspan="3" class="dataset">LLaVA-1.5 13B<br><span class="muted">(Adapter)</span></th><td class="col-method">No defense</td><td>100.00 (77.34)</td><td>100 (73.83)</td><td>99.61 (75.52)</td></tr>
+              <tr><td class="col-method">ZIP</td><td>86.33 (72.92)</td><td>78.12 (71.61)</td><td>76.17 (72.79)</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>0</b> (77.60)</td><td><b>0</b> (73.44)</td><td><b>0</b> (75.91)</td></tr>
+              <tr class="group-start"><th rowspan="3" class="dataset">InstructBLIP 7B<br><span class="muted">(Adapter)</span></th><td class="col-method">No defense</td><td>100.00 (66.20)</td><td>99.12 (65.87)</td><td>91.80 (67.06)</td></tr>
+              <tr><td class="col-method">ZIP</td><td>28.26 (52.41)</td><td>19.63 (51.85)</td><td>12.89 (58.07)</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>0</b> (65.90)</td><td><b>0</b> (65.40)</td><td><b>0</b> (65.84)</td></tr>
+              <tr class="group-start"><th rowspan="3" class="dataset">Qwen2-VL 7B<br><span class="muted">(Adapter)</span></th><td class="col-method">No defense</td><td>100.00 (75.91)</td><td>100 (74.61)</td><td>100.00 (76.95)</td></tr>
+              <tr><td class="col-method">ZIP</td><td>98.05 (69.27)</td><td>91.02 (65.49)</td><td>55.08 (67.06)</td></tr>
+              <tr class="ours"><td class="col-method">CleanSight</td><td><b>0</b> (73.89)</td><td><b>0</b> (69.23)</td><td><b>0</b> (71.00)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="caption caption-pipeline">
+          <span class="method-name">CleanSight</span> reduces ASR to nearly zero across LVLM architectures, scales, and fine-tuning types (adapter and LoRA), which suggests it depends on intrinsic attention dynamics rather than on model capacity or tuning strategy. The appendix of the paper extends this to Qwen3-VL (2B&ndash;32B), where ASR drops to 0 for all three attacks at every size.
+        </p>
+      </div>
+    </section>
+
+    <section id="analysis" class="section">
+      <div class="container">
+        <h2>Analysis</h2>
+
+        <div class="media-single">
+          <div class="media-frame">
+            <img src="media/detect_ablate.png" alt="Detection TPR/FPR vs. threshold and validation-set size" class="responsive-image" loading="lazy">
+            <p class="caption caption-pipeline">
+              <strong>The detector needs very little clean data.</strong> True and false positive rates for BadNet and Blended as the decision threshold &gamma; and the clean validation size |<em>D</em><sub>val</sub>| vary. TPR stays close to 100% in every setting. A larger &gamma; or more clean samples mainly removes occasional false alarms, and only about 10 clean samples already bring FPR below roughly 20%.
+            </p>
+          </div>
+        </div>
+
+        <div class="media-single" style="margin-top:22px;">
+          <div class="media-frame">
+            <img src="media/prune_ablate.png" alt="ASR and poisoned V-score vs. pruning threshold" class="responsive-image" loading="lazy">
+            <p class="caption caption-pipeline">
+              <strong>Pruning removes the trigger and keeps the semantics.</strong> With an oracle detector, lowering the pruning threshold &tau; steadily reduces ASR, which reaches nearly zero for all attacks at about &tau; = 10<sup>&minus;3</sup>. Blended needs a slightly smaller &tau; because its global trigger spreads attention over more tokens. Meanwhile, the V-score on <em>poisoned</em> inputs first rises as trigger tokens are removed and then declines only slightly when &tau; becomes very small. Pixel-level defenses typically push poisoned utility close to zero.
+            </p>
+          </div>
+        </div>
+
+        <div class="media-single" style="margin-top:22px;">
+          <div class="media-frame">
+            <div class="figure-narrow">
+              <img src="media/logitlens.png" alt="Logit lens analysis of next-token probability" class="responsive-image" loading="lazy">
+            </div>
+            <p class="caption caption-pipeline">
+              <strong>Logit lens: where the backdoor takes over.</strong> Unembedding each layer&rsquo;s hidden state and comparing the probability of the correct token (&ldquo;Yes&rdquo;) with the target token (&ldquo;You&rdquo;) shows that clean samples steadily reinforce the correct answer from the middle layers onward. Poisoned samples invert this preference in late layers, which means the trigger acts mainly after cross-modal fusion. <span class="method-name">CleanSight</span> realigns the poisoned trajectory with the clean one, apart from a small drop in late layers.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quickstart" class="section alt">
+      <div class="container">
+        <h2>Quick Start</h2>
+        <p><strong class="method-name">CleanSight</strong> is model-agnostic. It patches the attention of an existing model without source-code changes, calibrates on about 200 clean samples, and then defends at test time. The released code has been tested on LLaVA-1.5 (7B/13B), InstructBLIP, Qwen2-VL (2B/7B) and Qwen3-VL (2B/8B/32B). Install with <code>pip install -e .</code> from the <a href="https://github.com/zhangzf01/cleansight">repository</a>.</p>
+        <pre class="bibtex code-block">from cleansight import CleanSightConfig, CleanSightDefense
+
+# 1. Configure
+config = CleanSightConfig(
+    detection_layers=list(range(10, 25)),  # layers for detection
+    image_token_start_index=35,            # model-specific
+    image_token_length=576,                # e.g., 576 for LLaVA-1.5
+)
+defense = CleanSightDefense(config)
+
+# 2. Patch the model (model-agnostic, no source code changes)
+defense.patch(model)
+
+# 3. Calibrate on ~200 clean samples
+defense.set_mode("calibrate")
+for batch in clean_loader:
+    defense.reset()
+    model.generate(**batch)
+defense.fit()
+defense.save("configs/calibrated.yaml")
+
+# 4. Defend at test time
+defense.set_mode("defend")
+for batch in test_loader:
+    defense.reset()
+    output = model.generate(**batch)
+    if defense.was_poisoned:
+        print("Backdoor detected and neutralized!")</pre>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="container">
+        <h2>Contact</h2>
+        <p>For questions about the paper or code, please open an issue on the <a href="https://github.com/zhangzf01/cleansight/issues">GitHub repository</a>.</p>
+        <h3 class="bibtex-title">BibTeX</h3>
+        <div class="bibtex-wrap">
+          <button class="bibtex-copy-btn" type="button" aria-label="Copy BibTeX">Copy</button>
+        <pre class="bibtex">
+@article{zhang2026cleansight,
+  title={Test-Time Attention Purification for Backdoored Large Vision Language Models},
+  author={Zhang, Zhifang and Yang, Bojun and He, Shuo and Chen, Weitong and Zhang, Wei Emma and Maennel, Olaf and Feng, Lei and Xu, Miao},
+  journal={arXiv preprint arXiv:2603.12989},
+  year={2026}
+}
+        </pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <p>© <span id="year"></span> CleanSight authors. Website template adapted from <a href="https://world-in-world.github.io">World-in-World</a>.</p>
+    </div>
+  </footer>
+  <script src="assets/main.js"></script>
+</body>
+</html>
